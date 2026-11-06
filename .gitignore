@@ -1,0 +1,4 @@
+
+# Local Firebase app config; inject separately for Pages deployments
+/firebase-config.json
+
