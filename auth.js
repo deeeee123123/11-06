@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 const gate = document.querySelector("#authGate");
 const planner = document.querySelector("#plannerApp");
@@ -14,7 +14,8 @@ function showError(error) {
     "auth/popup-blocked": "登入視窗遭瀏覽器封鎖，請允許此網站開啟彈出視窗後重試。",
     "auth/popup-closed-by-user": "登入視窗已關閉，請重新點選登入。",
     "auth/operation-not-allowed": "Firebase 尚未啟用 Google 登入，請在 Authentication → 登入方式啟用 Google。",
-    "auth/unauthorized-continue-uri": "目前登入網址未獲授權，請確認已將 deeeee123123.github.io 加入 Firebase Authentication 的授權網域。"
+    "auth/unauthorized-continue-uri": "目前登入網址未獲授權，請確認已將 deeeee123123.github.io 加入 Firebase Authentication 的授權網域。",
+    "auth/network-request-failed": "無法連線至 Firebase，請檢查網路或瀏覽器是否封鎖驗證要求，再重試。"
   };
   message.textContent = messages[error.code] || `登入失敗（${error.code || "未知錯誤"}），請確認 Firebase 設定後重試。`;
 }
@@ -24,14 +25,17 @@ try {
   if (location.protocol !== "https:" && location.hostname !== "localhost") throw new Error("請透過 GitHub Pages HTTPS 網址開啟網站，再使用 Google 登入。");
   const app = initializeApp(window.FIREBASE_CONFIG);
   const auth = getAuth(app);
+  auth.useDeviceLanguage();
   logout.addEventListener("click", () => signOut(auth).catch(showError));
+  getRedirectResult(auth).then(result => {
+    if (result?.user) message.textContent = "登入成功，正在載入行程…";
+  }).catch(error => { showError(error); login.disabled = false; });
   login.addEventListener("click", async () => {
-    message.textContent = "正在前往 Google 登入…";
+    message.textContent = "正在開啟 Google 登入…";
     login.disabled = true;
-    try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
     catch (error) { showError(error); login.disabled = false; }
   });
-  getRedirectResult(auth).catch(showError);
   onAuthStateChanged(auth, user => {
     window.firebaseAuthUser = user || null;
     window.dispatchEvent(new Event("firebase-user-ready"));
