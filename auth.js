@@ -26,12 +26,13 @@ try {
   const app = initializeApp(window.FIREBASE_CONFIG);
   const auth = getAuth(app);
   auth.useDeviceLanguage();
+  const isEmbedded = window.top !== window.self;
   logout.addEventListener("click", () => signOut(auth).catch(showError));
   getRedirectResult(auth).then(result => {
     if (result?.user) message.textContent = "登入成功，正在載入行程…";
   }).catch(error => { showError(error); login.disabled = false; });
   login.addEventListener("click", async () => {
-    message.textContent = "正在開啟 Google 登入…";
+    message.textContent = isEmbedded ? "正在前往 Google 登入…" : "正在開啟 Google 登入…";
     login.disabled = true;
     const timeout = setTimeout(() => {
       if (login.disabled) {
@@ -39,7 +40,14 @@ try {
         message.textContent = "登入逾時或跳轉未完成。請用一般瀏覽器分頁開啟網站、允許彈出視窗，並確認 Firebase 授權網域後再試。";
       }
     }, 15000);
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+    try {
+      if (isEmbedded) {
+        message.textContent = "請於開啟的登入視窗完成 Google 登入，再返回此頁。";
+        await signInWithPopup(auth, new GoogleAuthProvider());
+      } else {
+        await signInWithPopup(auth, new GoogleAuthProvider());
+      }
+    }
     catch (error) { clearTimeout(timeout); showError(error); login.disabled = false; }
   });
   onAuthStateChanged(auth, user => {
