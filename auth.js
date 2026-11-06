@@ -33,8 +33,14 @@ try {
   login.addEventListener("click", async () => {
     message.textContent = "正在開啟 Google 登入…";
     login.disabled = true;
+    const timeout = setTimeout(() => {
+      if (login.disabled) {
+        login.disabled = false;
+        message.textContent = "登入逾時或跳轉未完成。請用一般瀏覽器分頁開啟網站、允許彈出視窗，並確認 Firebase 授權網域後再試。";
+      }
+    }, 15000);
     try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-    catch (error) { showError(error); login.disabled = false; }
+    catch (error) { clearTimeout(timeout); showError(error); login.disabled = false; }
   });
   onAuthStateChanged(auth, user => {
     window.firebaseAuthUser = user || null;
@@ -45,6 +51,7 @@ try {
     if (user) {
       userLabel.textContent = user.displayName || user.email || "個人空間";
       message.textContent = "";
+      login.disabled = false;
 
     }
   }, showError);
